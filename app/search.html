@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body>
+        <h1>App > Sök</h1>
+
+        <div class="search-active">
+            <br />
+            <label for="keyword">Boknamn</label>
+            <input id="keyword" type="text" />
+            <br />
+            <label for="authorName">Författarens namn</label>
+            <input id="authorName" type="text" />
+            <br />
+            <button id="search">Sök</button>
+        </div>
+
+        <ul id="searchResults"></ul>
+
+        <div class="update-inactive">
+            <input id="book_id" type="hidden" name="book_id" />
+
+            <label for="titel">bok namn</label>
+            <input id="titel" type="text" name="titel" autofocus />
+
+            <label for="author">författare</label>
+            <input id="author" type="text" name="author" />
+
+            <label for="publication_date">Datum</label>
+            <input id="publication_date" type="text" name="publication_date" />
+
+            <br />
+
+            <button id="btnUpdate" type="submit">Spara</button>
+
+            <br />
+
+            <button id="btnDelete" class="button-delete" type="submit">
+                Radera
+            </button>
+        </div>
+
+        <script>
+            const btnSearch = document.querySelector('#search')
+            const btnUpdate = document.querySelector('#btnUpdate')
+            const btnDelete = document.querySelector('#btnDelete')
+            const btnBorrow = document.querySelector('#btnBorrow')
+
+            btnSearch.addEventListener('click', () => {
+                printResults()
+            })
+
+            btnUpdate.addEventListener('click', () => {
+                let book_id = document.querySelector('#book_id').value
+                let titel = document.querySelector('#titel').value
+                let author_id = document.querySelector('#author').value
+                let publication_date =
+                    document.querySelector('#publication_date').value
+
+                const options = {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        book_id: book_id,
+                        titel: titel,
+                        author_id: author_id,
+                        publication_date: publication_date
+                    })
+                }
+
+                fetch('http://localhost:3001/library/edit', options)
+                    .then((response) => {
+                        return response.json()
+                    })
+                    .then((data) => {
+                        console.log(data)
+                    })
+            })
+
+            btnDelete.addEventListener('click', () => {
+                let bookId = document.querySelector('#book_id').value
+
+                console.log('bookId:', bookId)
+
+                const options = {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        book_id: bookId
+                    })
+                }
+
+                fetch('http://localhost:3001/library/remove', options)
+                    .then((response) => {
+                        return response.json()
+                    })
+                    .then((data) => {
+                        console.log(data)
+                    })
+            })
+
+            async function printResults() {
+                const ul = document.querySelector('#searchResults')
+                const keywords = document.querySelector('#keyword').value
+                const authorName = document.querySelector('#authorName').value
+                let data = await getResultsByKeyword(keywords, authorName)
+
+                for (const book of data) {
+                    let li = document.createElement('li')
+                    let a = document.createElement('a')
+                    const {
+                        book_id,
+                        titel,
+                        author_id,
+                        publication_date,
+                        amountavailable,
+                        amountborrowed
+                    } = book
+                    //console.log(book)
+                    a.id = book_id
+                    a.innerText =
+                        titel +
+                        ' Det finns just nu: ' +
+                        amountavailable +
+                        ' st tillgängliga och ' +
+                        amountborrowed +
+                        ' st är utlånade'
+                    a.addEventListener('click', () => {
+                        setCurrentBook(book)
+                        console.log(book)
+                        console.log(book.book_id)
+                        displayUpdate()
+                    })
+
+                    li.appendChild(a)
+                    ul.appendChild(li)
+                }
+            }
+
+            function setCurrentBook(book) {
+                document.querySelector('#book_id').value = book.book_id
+                document.querySelector('#titel').value = book.titel
+                document.querySelector('#author').value = book.author_id
+                document.querySelector('#publication_date').value =
+                    book.publication_date
+            }
+            function displayUpdate() {
+                var search = document.querySelector('.search-active')
+                search.className = 'search-inactive'
+
+                var update = document.querySelector('.update-inactive')
+                update.className = 'update-active'
+            }
+
+            async function getResultsByKeyword(keyword, authorName) {
+                const options = {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'application/json'
+                    }
+                }
+
+                let response = await fetch(
+                    'http://localhost:3001/library/search?' +
+                        new URLSearchParams({
+                            keyword,
+                            authorName
+                        }),
+                    options
+                ).catch((error) => {
+                    console.error(error)
+                })
+
+                let data = await response.json()
+
+                console.log(data)
+
+                return data
+            }
+        </script>
+    </body>
+</html>
